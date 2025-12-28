@@ -1,4 +1,8 @@
-Reunión de equipo|2024-12-15
-Presentación de proyecto|2024-12-20
-Taller de programación|2024-12-25
 Prueba de Pro|2025-01-12
+Presentación de proyecto|2024-12-20
+Reunión de equipo|2024-12-15
+Taller de programación|2024-12-25
+Orientacion de proyecto|2025-01-12
+Prueba de AM|2025-02-10
+Prueba de Algebra|2025-02-15
+Prueba de Historia|2025-01-12

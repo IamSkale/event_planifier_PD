@@ -1,0 +1,9 @@
+sala_pruebas
+auditorio,proyector,micrófono
+sala_conferencias,proyector
+laboratorio_computación,proyector
+
+sala_conferencias
+
+
+
