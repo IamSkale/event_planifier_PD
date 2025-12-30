@@ -1,4 +1,4 @@
-:- module(eventos_con_recursos, [iniciar/0, main/0]).
+:- module(eventos, [iniciar/0, main/0]).
 
 % PREDICADOS DINÁMICOS
 :- dynamic mi_evento/2.
@@ -11,7 +11,7 @@ archivo_recursos('recursos.txt').
 % ========== INICIALIZAR SISTEMA ==========
 iniciar :-
     write('================================'), nl,
-    write('  SISTEMA EVENTOS CON RECURSOS  '), nl,
+    write('         SISTEMA EVENTOS        '), nl,
     write('================================'), nl, nl,
     cargar_todo,
     bucle_principal.
@@ -69,8 +69,7 @@ guardar_eventos :-
         open(Archivo, write, Stream),
         escribir_eventos_a_stream(Stream),
         close(Stream)
-    ),
-    format('💾 Eventos guardados en ~w~n', [Archivo]).
+    ).
 
 guardar_recursos :-
     archivo_recursos(Archivo),
@@ -78,8 +77,7 @@ guardar_recursos :-
         open(Archivo, write, Stream),
         escribir_recursos_a_stream(Stream),
         close(Stream)
-    ),
-    format('💾 Recursos guardados en ~w~n', [Archivo]).
+    ).
 
 % Escribir eventos al archivo
 escribir_eventos_a_stream(Stream) :-
@@ -107,17 +105,12 @@ escribir_recursos_por_orden(Stream, [Nombre|Resto]) :-
 
 % ========== CARGA DE DATOS ==========
 cargar_todo :-
-    format('📂 Cargando datos...~n', []),
     cargar_eventos,
-    cargar_recursos,
-    contar_eventos(TotalEventos),
-    contar_recursos(TotalRecursos),
-    format('✅ Cargados ~d eventos y ~d recursos~n~n', [TotalEventos, TotalRecursos]).
+    cargar_recursos.
 
 cargar_eventos :-
     archivo_eventos(Archivo),
     (exists_file(Archivo) ->
-        format('   Leyendo eventos de ~w~n', [Archivo]),
         limpiar_eventos,
         setup_call_cleanup(
             open(Archivo, read, Stream),
@@ -146,7 +139,6 @@ leer_eventos_desde_stream(Stream) :-
 cargar_recursos :-
     archivo_recursos(Archivo),
     (exists_file(Archivo) ->
-        format('   Leyendo recursos de ~w~n', [Archivo]),
         limpiar_recursos,
         setup_call_cleanup(
             open(Archivo, read, Stream),
@@ -176,13 +168,11 @@ leer_recursos_por_evento(Stream, [Nombre|RestoEventos], NumLinea) :-
             split_string(Linea, ",", "", Recursos)
         ),
         assertz(mis_recursos(Nombre, Recursos)),
-        format('   ✓ Línea ~d: ~w -> Recursos: ~w~n', [NumLinea, Nombre, Recursos]),
         NumLinea1 is NumLinea + 1,
         leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
     ;
         % Línea vacía - tratar como sin recursos
         assertz(mis_recursos(Nombre, [])),
-        format('   ✓ Línea ~d: ~w -> Sin recursos (línea vacía)~n', [NumLinea, Nombre]),
         NumLinea1 is NumLinea + 1,
         leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
     ).
@@ -192,8 +182,7 @@ leer_recursos_por_evento(_, _, _).
 procesar_linea_evento(Linea) :-
     split_string(Linea, "|", "", Partes),
     (Partes = [Nombre, Fecha] ->
-        assertz(mi_evento(Nombre, Fecha)),
-        format('   ✓ Evento: ~w (Fecha: ~w)~n', [Nombre, Fecha])
+        assertz(mi_evento(Nombre, Fecha))
     ;
         format('   ⚠️  Línea mal formada: ~w~n', [Linea])
     ).
