@@ -6,3 +6,4 @@ Orientacion de proyecto|2025-01-12
 Prueba de AM|2025-02-10
 Prueba de Algebra|2025-02-15
 Prueba de Historia|2025-01-12
+Exposicion de Filosofia|2025-02-20

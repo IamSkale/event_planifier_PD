@@ -81,7 +81,9 @@ guardar_recursos :-
 
 % Escribir eventos al archivo
 escribir_eventos_a_stream(Stream) :-
-    findall([Nombre, Fecha], mi_evento(Nombre, Fecha), Eventos),
+    findall([Nombre, Fecha], mi_evento(Nombre, Fecha), EventosAll),
+    % Eliminar duplicados si existen (preserva el primer orden de aparición)
+    list_to_set(EventosAll, Eventos),
     forall(
         member([Nombre, Fecha], Eventos),
         format(Stream, '~w|~w~n', [Nombre, Fecha])
@@ -89,24 +91,33 @@ escribir_eventos_a_stream(Stream) :-
 
 % Escribir recursos al archivo manteniendo el orden de los eventos
 escribir_recursos_a_stream(Stream) :-
-    % Obtener todos los eventos en el orden actual
-    findall(Nombre, mi_evento(Nombre, _), EventosOrden),
+    % Obtener todos los eventos en el orden actual (sin duplicados)
+    findall(Nombre, mi_evento(Nombre, _), EventosAll),
+    list_to_set(EventosAll, EventosOrden),
     escribir_recursos_por_orden(Stream, EventosOrden).
 
 escribir_recursos_por_orden(_, []).
 escribir_recursos_por_orden(Stream, [Nombre|Resto]) :-
-    (mis_recursos(Nombre, Recursos) ->
-        atomic_list_concat(Recursos, ',', RecursosStr)
+    (mis_recursos(Nombre, Recursos), Recursos \= [] ->
+        % Unir recursos con comas (sin espacios)
+        atomic_list_concat(Recursos, ',', RecursosStr),
+        format(Stream, '~w~n', [RecursosStr])
     ;
-        RecursosStr = ''
+        % Si no hay recursos, escribir línea vacía
+        format(Stream, '~n', [])
     ),
-    format(Stream, '~w~n', [RecursosStr]),
     escribir_recursos_por_orden(Stream, Resto).
 
 % ========== CARGA DE DATOS ==========
 cargar_todo :-
+    format('📂 Cargando datos...~n', []),
     cargar_eventos,
-    cargar_recursos.
+    contar_eventos(TotalEventos),
+    format('   ✅ ~d eventos cargados~n', [TotalEventos]),
+    cargar_recursos,
+    contar_recursos(TotalRecursos),
+    format('   ✅ ~d conjuntos de recursos cargados~n', [TotalRecursos]),
+    nl.
 
 cargar_eventos :-
     archivo_eventos(Archivo),
@@ -161,28 +172,43 @@ leer_recursos_por_evento(Stream, [Nombre|RestoEventos], NumLinea) :-
     (Linea == end_of_file -> 
         format('   ⚠️  Fin de archivo alcanzado en línea ~d~n', [NumLinea])
     ;
-    Linea \= "" ->
-        (Linea = "-" -> 
-            Recursos = []  % Línea con guión significa sin recursos
+        % Procesar la línea (puede estar vacía o contener recursos separados por comas)
+        (Linea = "" ->
+            % Línea vacía = sin recursos
+            Recursos = []
         ;
-            split_string(Linea, ",", "", Recursos)
+            % Eliminar espacios al principio y final usando string_trim/2
+            string_trim(Linea, LineaTrim),
+            (LineaTrim = "" ->
+                % Solo espacios = sin recursos
+                Recursos = []
+            ;
+                % Dividir por comas y limpiar cada recurso
+                split_string(LineaTrim, ",", "", RecursosRaw),
+                limpiar_lista_recursos(RecursosRaw, Recursos)
+            )
         ),
-        assertz(mis_recursos(Nombre, Recursos)),
-        NumLinea1 is NumLinea + 1,
-        leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
-    ;
-        % Línea vacía - tratar como sin recursos
-        assertz(mis_recursos(Nombre, [])),
+        % Solo almacenar si hay recursos
+        (Recursos = [] -> 
+            true
+        ;
+            assertz(mis_recursos(Nombre, Recursos)),
+            format('   ✓ Línea ~d: ~w -> Recursos: ~w~n', [NumLinea, Nombre, Recursos])
+        ),
         NumLinea1 is NumLinea + 1,
         leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
     ).
-leer_recursos_por_evento(_, _, _).
 
 % Formato eventos: Nombre|Fecha
 procesar_linea_evento(Linea) :-
     split_string(Linea, "|", "", Partes),
     (Partes = [Nombre, Fecha] ->
-        assertz(mi_evento(Nombre, Fecha))
+        % Evitar insertar eventos duplicados al leer desde archivo
+        (mi_evento(Nombre, Fecha) ->
+            true
+        ;
+            assertz(mi_evento(Nombre, Fecha))
+        )
     ;
         format('   ⚠️  Línea mal formada: ~w~n', [Linea])
     ).
@@ -319,15 +345,21 @@ agregar_evento_con_recursos :-
             (RecursosInput = "" ->
                 Recursos = []
             ;
-                split_string(RecursosInput, ",", " ", RecursosLista),
+                split_string(RecursosInput, ",", "", RecursosLista),
                 limpiar_lista_recursos(RecursosLista, Recursos)
             ),
             % Agregar evento
-            assertz(mi_evento(Nombre, Fecha)),
-            % Agregar recursos
-            (Recursos == [] -> 
+            % Evitar duplicados al agregar manualmente
+            (mi_evento(Nombre, Fecha) ->
+                format('❗ El evento "~w" para ~w ya existe, no se duplicará.~n', [Nombre, Fecha])
+            ;
+                assertz(mi_evento(Nombre, Fecha))
+            ),
+            % Agregar/actualizar recursos (reemplaza si ya existen)
+            (Recursos == [] ->
                 true
             ;
+                retractall(mis_recursos(Nombre, _)),
                 assertz(mis_recursos(Nombre, Recursos))
             ),
             % Guardar todo
@@ -346,16 +378,16 @@ agregar_evento_con_recursos :-
         )
     ).
 
-% Limpiar lista de recursos (quitar espacios y elementos vacíos)
+% Limpiar lista de recursos (quitar elementos vacíos)
 limpiar_lista_recursos([], []).
-limpiar_lista_recursos([R|Resto], [Rlimpio|Limpios]) :-
-    string_trim(R, " ", Rlimpio),
-    (Rlimpio = "" -> 
-        Limpios = RestoLimpios
-    ; 
+limpiar_lista_recursos([R|Resto], Limpios) :-
+    string_trim(R, Rlimpio),
+    (Rlimpio = "" ->
+        limpiar_lista_recursos(Resto, Limpios)
+    ;
+        limpiar_lista_recursos(Resto, RestoLimpios),
         Limpios = [Rlimpio|RestoLimpios]
-    ),
-    limpiar_lista_recursos(Resto, RestoLimpios).
+    ).
 
 % ========== VALIDACIÓN DE FECHA ==========
 validar_fecha(Fecha) :-
@@ -389,6 +421,29 @@ es_bisiesto(Anio) :-
      Anio mod 4 =:= 0).
 
 % ========== UTILIDADES ==========
+% Eliminar espacios al principio y final de una cadena
+string_trim(Str, Trimmed) :-
+    string(Str),
+    string_codes(Str, Codes),
+    trim_whitespace_codes(Codes, TrimmedCodes),
+    string_codes(Trimmed, TrimmedCodes).
+
+trim_whitespace_codes(Codes, Trimmed) :-
+    trim_leading(Codes, NoLead),
+    reverse(NoLead, Rev),
+    trim_leading(Rev, RevTrim),
+    reverse(RevTrim, Trimmed).
+
+trim_leading([C|Cs], Trimmed) :-
+    whitespace_code(C), !,
+    trim_leading(Cs, Trimmed).
+trim_leading(List, List).
+
+whitespace_code(9).   % tab
+whitespace_code(10).  % newline
+whitespace_code(13).  % carriage return
+whitespace_code(32).  % space
+
 leer_linea(String) :-
     read_line_to_codes(user_input, Codes),
     (Codes == end_of_file -> 
