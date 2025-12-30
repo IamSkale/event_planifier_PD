@@ -3,10 +3,12 @@
 % PREDICADOS DINÁMICOS
 :- dynamic mi_evento/2.
 :- dynamic mis_recursos/2.
+:- dynamic recurso_inventario/1.
 
 % Archivos de persistencia
 archivo_eventos('eventos.txt').
 archivo_recursos('recursos.txt').
+archivo_inventario('inventario.txt').
 
 % ========== INICIALIZAR SISTEMA ==========
 iniciar :-
@@ -21,7 +23,7 @@ bucle_principal :-
     mostrar_menu,
     leer_opcion(Opcion),
     procesar_opcion(Opcion),
-    (Opcion =:= 4 -> 
+    (Opcion =:= 5 -> 
         write('Saliendo del sistema...'), nl
     ; 
         bucle_principal
@@ -30,15 +32,16 @@ bucle_principal :-
 mostrar_menu :-
     write('OPCIONES DISPONIBLES:'), nl,
     write('  1. Ver lista de eventos'), nl,
-    write('  2. Ver eventos por fecha'), nl,
-    write('  3. Agregar evento con recursos'), nl,
-    write('  4. Salir'), nl, nl.
+    write('  2. Ver inventario'), nl,
+    write('  3. Ver eventos por fecha'), nl,
+    write('  4. Agregar evento con recursos'), nl,
+    write('  5. Salir'), nl, nl.
 
 leer_opcion(Opcion) :-
-    write('Seleccione una opción (1-4): '),
+    write('Seleccione una opción (1-5): '),
     flush_output,
     leer_linea(Input),
-    (atom_number(Input, Num), integer(Num), Num >= 1, Num =< 4 ->
+    (atom_number(Input, Num), integer(Num), Num >= 1, Num =< 5 ->
         Opcion = Num
     ;
         write('❌ Opción inválida. Intente de nuevo.'), nl, nl,
@@ -49,12 +52,15 @@ procesar_opcion(1) :-
     ver_eventos_con_recursos.
     
 procesar_opcion(2) :-
-    ver_eventos_fecha.
+    ver_inventario.
 
 procesar_opcion(3) :-
-    agregar_evento_con_recursos.
+    ver_eventos_fecha.
 
 procesar_opcion(4) :-
+    agregar_evento_con_recursos.
+
+procesar_opcion(5) :-
     guardar_todo,
     write('👋 ¡Hasta luego!'), nl.
 
@@ -110,14 +116,9 @@ escribir_recursos_por_orden(Stream, [Nombre|Resto]) :-
 
 % ========== CARGA DE DATOS ==========
 cargar_todo :-
-    format('📂 Cargando datos...~n', []),
     cargar_eventos,
-    contar_eventos(TotalEventos),
-    format('   ✅ ~d eventos cargados~n', [TotalEventos]),
     cargar_recursos,
-    contar_recursos(TotalRecursos),
-    format('   ✅ ~d conjuntos de recursos cargados~n', [TotalRecursos]),
-    nl.
+    cargar_inventario.
 
 cargar_eventos :-
     archivo_eventos(Archivo),
@@ -192,12 +193,42 @@ leer_recursos_por_evento(Stream, [Nombre|RestoEventos], NumLinea) :-
         (Recursos = [] -> 
             true
         ;
-            assertz(mis_recursos(Nombre, Recursos)),
-            format('   ✓ Línea ~d: ~w -> Recursos: ~w~n', [NumLinea, Nombre, Recursos])
+            assertz(mis_recursos(Nombre, Recursos))
         ),
         NumLinea1 is NumLinea + 1,
         leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
     ).
+
+% ========== INVENTARIO ==========
+cargar_inventario :-
+    archivo_inventario(Archivo),
+    (exists_file(Archivo) ->
+        retractall(recurso_inventario(_)),
+        setup_call_cleanup(
+            open(Archivo, read, Stream),
+            leer_inventario_desde_stream(Stream),
+            close(Stream)
+        )
+    ;
+        format('   ⚠️  No se encontró ~w, inventario vacío~n', [Archivo]),
+        retractall(recurso_inventario(_))
+    ).
+
+leer_inventario_desde_stream(Stream) :-
+    leer_linea_archivo(Stream, Linea),
+    (Linea == end_of_file ->
+        true
+    ;
+        (Linea \= "" ->
+            string_trim(Linea, T),
+            (T \= "" -> (recurso_inventario(T) -> true ; assertz(recurso_inventario(T))) ; true)
+        ; true),
+        leer_inventario_desde_stream(Stream)
+    ).
+
+contar_inventario(Total) :-
+    findall(_, recurso_inventario(_), Lista),
+    length(Lista, Total).
 
 % Formato eventos: Nombre|Fecha
 procesar_linea_evento(Linea) :-
@@ -279,6 +310,28 @@ mostrar_eventos_con_recursos([[Nombre, Fecha]|Resto], N) :-
     N1 is N + 1,
     mostrar_eventos_con_recursos(Resto, N1).
 
+% ========== VER INVENTARIO ==========
+ver_inventario :-
+    nl,
+    write('================================'), nl,
+    write('           INVENTARIO           '), nl,
+    write('================================'), nl, nl,
+    findall(R, recurso_inventario(R), Lista),
+    (Lista == [] ->
+        write('📭 Inventario vacío.'), nl
+    ;
+        mostrar_inventario(Lista, 1),
+        length(Lista, Cantidad),
+        format('~nTotal: ~d recursos~n', [Cantidad])
+    ),
+    nl.
+
+mostrar_inventario([], _).
+mostrar_inventario([R|Resto], N) :-
+    format('~d. ~w~n', [N, R]),
+    N1 is N + 1,
+    mostrar_inventario(Resto, N1).
+
 % ========== VER EVENTOS POR FECHA ==========
 ver_eventos_fecha :-
     nl,
@@ -326,7 +379,7 @@ agregar_evento_con_recursos :-
     write('================================'), nl,
     write('   NUEVO EVENTO CON RECURSOS    '), nl,
     write('================================'), nl, nl,
-    
+
     write('Nombre del evento: '),
     flush_output,
     leer_linea(Nombre),
@@ -348,30 +401,43 @@ agregar_evento_con_recursos :-
                 split_string(RecursosInput, ",", "", RecursosLista),
                 limpiar_lista_recursos(RecursosLista, Recursos)
             ),
-            % Agregar evento
-            % Evitar duplicados al agregar manualmente
-            (mi_evento(Nombre, Fecha) ->
-                format('❗ El evento "~w" para ~w ya existe, no se duplicará.~n', [Nombre, Fecha])
+            % Verificar que los recursos solicitados estén en el inventario
+            findall(R, (member(R, Recursos), \+ recurso_inventario(R)), NoInvAll),
+            list_to_set(NoInvAll, NoInv),
+            (NoInv \= [] ->
+                format('❌ Recursos no presentes en inventario: ~w~nNo se agregó el evento.~n', [NoInv])
             ;
-                assertz(mi_evento(Nombre, Fecha))
-            ),
-            % Agregar/actualizar recursos (reemplaza si ya existen)
-            (Recursos == [] ->
-                true
-            ;
-                retractall(mis_recursos(Nombre, _)),
-                assertz(mis_recursos(Nombre, Recursos))
-            ),
-            % Guardar todo
-            guardar_todo,
-            format('✅ Evento "~w" agregado para la fecha ~w~n', [Nombre, Fecha]),
-            (Recursos == [] -> 
-                format('   📦 Sin recursos asignados~n', [])
-            ;
-                atomic_list_concat(Recursos, ', ', RecursosStr),
-                format('   📦 Recursos: ~w~n', [RecursosStr])
-            ),
-            format('💾 Datos guardados automáticamente~n', [])
+                % Verificar disponibilidad de recursos para la fecha
+                recursos_ocupados_en_fecha(Fecha, Ocupados),
+                findall(R, (member(R, Recursos), member(R, Ocupados)), NoDisponiblesAll),
+                list_to_set(NoDisponiblesAll, NoDisponibles),
+                (NoDisponibles \= [] ->
+                    format('❌ Recursos no disponibles para ~w: ~w~nNo se agregó el evento.~n', [Fecha, NoDisponibles])
+                ;
+                    % Agregar evento (evitar duplicados)
+                    (mi_evento(Nombre, Fecha) ->
+                        format('❗ En la fecha ~w ya existe el evento "~w".~n', [Fecha, Nombre])
+                    ;
+                        assertz(mi_evento(Nombre, Fecha))
+                    ),
+                    % Agregar/actualizar recursos (reemplaza si ya existen)
+                    (Recursos == [] ->
+                        true
+                    ;
+                        retractall(mis_recursos(Nombre, _)),
+                        assertz(mis_recursos(Nombre, Recursos))
+                    ),
+                    % Guardar todo
+                    guardar_todo,
+                    format('✅ Evento "~w" agregado para la fecha ~w~n', [Nombre, Fecha]),
+                    (Recursos == [] ->
+                        format('   📦 Sin recursos asignados~n', [])
+                    ;
+                        atomic_list_concat(Recursos, ', ', RecursosStr),
+                        format('   📦 Recursos: ~w~n', [RecursosStr])
+                    )
+                )
+            )
         ;
             write('❌ Formato de fecha inválido. Use YYYY-MM-DD'), nl,
             agregar_evento_con_recursos
@@ -388,6 +454,11 @@ limpiar_lista_recursos([R|Resto], Limpios) :-
         limpiar_lista_recursos(Resto, RestoLimpios),
         Limpios = [Rlimpio|RestoLimpios]
     ).
+
+% Recursos ocupados en una fecha específica
+recursos_ocupados_en_fecha(Fecha, Ocupados) :-
+    findall(Res, (mi_evento(N, Fecha), mis_recursos(N, Lista), member(Res, Lista)), All),
+    list_to_set(All, Ocupados).
 
 % ========== VALIDACIÓN DE FECHA ==========
 validar_fecha(Fecha) :-

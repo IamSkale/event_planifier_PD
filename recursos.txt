@@ -6,4 +6,4 @@ laboratorio_computación,proyector
 sala_conferencias
 
 
-aula,pizarra
+tizas

@@ -1,0 +1,7 @@
+sala_pruebas
+auditorio
+proyector
+micrófono
+sala_conferencias
+pizarra
+tizas
