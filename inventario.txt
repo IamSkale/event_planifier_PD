@@ -1,7 +1,7 @@
-sala_pruebas
-auditorio
-proyector
-micrófono
-sala_conferencias
-pizarra
-tizas
+sala_pruebas 10
+auditorio 10
+proyector 10
+micrófono 10
+sala_conferencias 10
+pizarra 10
+tizas 10

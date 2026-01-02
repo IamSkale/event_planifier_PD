@@ -1,9 +1,10 @@
 # event_planifier_PD
 Un proyecto de programacion declarativa de un planificador de eventos hecho en prolog.
-Para correr el proyecto se recomienda usando la terminal, con Swi-prolog instalado, usar el comando de "swipl eventos.pl" y luego en la terminal de swi escribir "iniciar.".
+Para correr el proyecto se recomienda usando la terminal, con Swi-prolog instalado, usar el comando de "swipl main.pl" y luego en la terminal de swi escribir "main.".
 
 En estos momentos el proyecto solo tiene una lista de eventos guardada en el archivo eventos.txt y el usuario es capaz de ver los eventos listados y agregar nuevos eventos con nombre, fecha y recursos especificos.
 Los eventos se agregaran unicamente si no hay un evento con ese nombre en esa misma fecha, si los recursos necesarios para el desarrollo del evento se encuentran disponibles en esa fecha y si estos mismos recursos pertenecen al inventario general.
+Tiene un sistema de recursos donde el inventario tiene cantidades para cada recurso y asi poder usar un mismo recurso en varios eventos a la vez. 
 
-Se le agregara una opcion de agregar un evento en la proximo fecha disponible en caso que al usuario no le afecte la fecha y un sistema de recursos donde el inventario tiene cantidades para cada recurso y asi poder usar un mismo recurso en varios eventos a la vez. 
-Por ultimo se agregara una interfaz grafica para mejor experiencia de usuario.
+Se le agregara una opcion de agregar un evento en la proximo fecha disponible en caso que al usuario no le afecte la fecha 
+

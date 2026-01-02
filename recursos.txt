@@ -1,9 +1,16 @@
-sala_pruebas
-auditorio,proyector,micrófono
-sala_conferencias,proyector
-laboratorio_computación,proyector
+sala_pruebas 1
+auditorio 1,proyector 1,micrófono 1
+sala_conferencias 1,proyector 1
+laboratorio_computación 1,proyector 1
 
-sala_conferencias
+sala_conferencias 1
 
 
-tizas
+tizas 1
+tizas 2
+tizas 2
+tizas 2
+tizas 5
+tizas 2,proyector 1,micrófono 3
+
+tizas 5

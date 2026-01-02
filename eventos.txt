@@ -7,4 +7,10 @@ Prueba de AM|2025-02-10
 Prueba de Algebra|2025-02-15
 Prueba de Historia|2025-01-12
 Exposicion de Filosofia|2025-02-20
-
+Expo Filo|2025-03-25
+Expo Historia|2025-03-25
+expo|2025-02-22
+kuv|2025-05-25
+adfasf|2025-06-20
+asfasf|2025-06-5
+assetgd|2025-05-6
