@@ -1,16 +1,40 @@
-sala_pruebas 1
-auditorio 1,proyector 1,micrófono 1
-sala_conferencias 1,proyector 1
-laboratorio_computación 1,proyector 1
-
-sala_conferencias 1
-
-
-tizas 1
-tizas 2
-tizas 2
-tizas 2
-tizas 5
-tizas 2,proyector 1,micrófono 3
-
-tizas 5
+PC_Gaming 50,monitor 50,silla_gamer 50,headset 50
+PC_Gaming 100,monitor 100,headset 100,stream_setup 5
+PC_Gaming 80,monitor 80,headset 80,webcam 80
+stream_setup 10,mezclador_audio 5,camara_pro 10
+PC_Gaming 120,monitor 120,headset 120
+PC_Gaming 150,monitor 150,headset 150,stream_setup 8
+PC_Gaming 60,consola_PS5 60,TV 60
+PC_Gaming 40,monitor 40,headset 40,stream_setup 3
+PC_Gaming 70,monitor 70,headset 70
+PC_Gaming 90,monitor 90,headset 90,mezclador_audio 3
+PC_Gaming 100,monitor 100,headset 100
+arcade_machine 30,stream_setup 2
+PC_Gaming 80,monitor 80,headset 80
+PC_Gaming 100,monitor 100,headset 100
+PC_Gaming 120,monitor 120,headset 120
+console_XBOX 80,TV 80,headset 80
+PC_Gaming 60,monitor 60,headset 60
+PC_Gaming 40,monitor 40,headset 40,stream_setup 2
+PC_Gaming 50,monitor 50,headset 50
+stream_setup 4,teleprompter 2,camara_pro 4
+PC_Gaming 80,monitor 80,headset 80
+stream_setup 6,mezclador_audio 4
+PC_Gaming 100,monitor 100,headset 100
+PC_Gaming 70,monitor 70,headset 70
+PC_Gaming 60,monitor 60,headset 60
+PC_Gaming 50,monitor 50,headset 50
+stream_setup 3,camara_pro 6
+PC_Gaming 65,monitor 65,headset 65
+PC_Gaming 55,monitor 55,headset 55
+stream_setup 4,teleprompter 1
+PC_Gaming 80,monitor 80,headset 80
+stream_setup 5,mezclador_audio 2
+PC_Gaming 90,monitor 90,headset 90
+stream_setup 7,camara_pro 8
+PC_Gaming 100,monitor 100,headset 100
+stream_setup 3,teleprompter 3
+PC_Gaming 110,monitor 110,headset 110
+stream_setup 4,mezclador_audio 6
+PC_Gaming 120,monitor 120,headset 120
+stream_setup 5,camara_pro 5

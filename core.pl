@@ -2,13 +2,9 @@
 
 :- use_module(data).
 :- use_module(saving, [guardar_todo/0, recurso_a_string/2]).
-:- use_module(charging, [cargar_todo/0, limpiar_lista_recursos/2]).
-:- use_module(utils, [leer_linea/1, validar_fecha/1, sort_eventos/2, recursos_ocupados_en_fecha/2, ocupado_cant/3]).
-
-% Archivos de persistencia
-archivo_eventos('eventos.txt').
-archivo_recursos('recursos.txt').
-archivo_inventario('inventario.txt').
+:- use_module(charging, [cargar_todo/0]).
+:- use_module(utils, [leer_linea/1, validar_fecha/1, sort_eventos/2, solicitar_recursos_en_fecha/3, 
+    solicitar_recursos_sin_fecha/2]).
 
 % ========== INICIALIZAR SISTEMA ==========
 iniciar :-
@@ -38,7 +34,7 @@ mostrar_menu :-
     write('  5. Salir'), nl, nl.
 
 leer_opcion(Opcion) :-
-    write('Seleccione una opción (1-5): '),
+    write('Seleccione una opción (1-6): '),
     flush_output,
     leer_linea(Input),
     (atom_number(Input, Num), integer(Num), Num >= 1, Num =< 5 ->
@@ -184,65 +180,24 @@ agregar_evento_con_recursos :-
         write('❌ El nombre no puede estar vacío.'), nl,
         agregar_evento_con_recursos
     ;
-        write('Fecha (formato: YYYY-MM-DD): '),
+        write('Fecha (formato: YYYY-MM-DD) o presione Enter para la proxima fecha disponible: '),
         flush_output,
         leer_linea(Fecha),
-        (validar_fecha(Fecha) ->
-            % Solicitar recursos
+        (Fecha = "" ->
             write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
             flush_output,
             leer_linea(RecursosInput),
-            (RecursosInput = "" ->
-                Recursos = []
-            ;
-                split_string(RecursosInput, ",", "", RecursosLista),
-                limpiar_lista_recursos(RecursosLista, Recursos)
-            ),
-            % Verificar que los recursos solicitados estén en el inventario
-            findall(R, (member([R, _], Recursos), \+ data:recurso_inventario(R, _)), NoInvAll),
-            list_to_set(NoInvAll, NoInv),
-            (NoInv \= [] ->
-                format('❌ Recursos no presentes en inventario: ~w~nNo se agregó el evento.~n', [NoInv])
-            ;
-                % Verificar disponibilidad de recursos para la fecha
-                recursos_ocupados_en_fecha(Fecha, Ocupados),
-                findall([R, C], (member([R, C], Recursos), 
-                                 (data:recurso_inventario(R, InvCant) ->
-                                     (ocupado_cant(R, Ocupados, OcupCant),
-                                      C + OcupCant > InvCant)
-                                 ; 
-                                     false
-                                 )), NoDisponiblesAll),
-                (NoDisponiblesAll \= [] ->
-                    format('❌ Recursos no disponibles para ~w: ~w~nNo se agregó el evento.~n', [Fecha, NoDisponiblesAll])
-                ;
-                    % Agregar evento (evitar duplicados)
-                    (data:mi_evento(Nombre, Fecha) ->
-                        format('❗ En la fecha ~w ya existe el evento "~w".~n', [Fecha, Nombre])
-                    ;
-                        assertz(data:mi_evento(Nombre, Fecha))
-                    ),
-                    % Agregar/actualizar recursos (reemplaza si ya existen)
-                    (Recursos == [] ->
-                        true
-                    ;
-                        retractall(data:mis_recursos(Nombre, _)),
-                        assertz(data:mis_recursos(Nombre, Recursos))
-                    ),
-                    % Guardar todo
-                    guardar_todo,
-                    format('✅ Evento "~w" agregado para la fecha ~w~n', [Nombre, Fecha]),
-                    (Recursos == [] ->
-                        format('   📦 Sin recursos asignados~n', [])
-                    ;
-                        maplist(recurso_a_string, Recursos, RecursosStrList),
-                        atomic_list_concat(RecursosStrList, ', ', RecursosStr),
-                        format('   📦 Recursos: ~w~n', [RecursosStr])
-                    )
-                )
-            )
+            solicitar_recursos_sin_fecha(Nombre,RecursosInput)
         ;
-            write('❌ Formato de fecha inválido. Use YYYY-MM-DD'), nl,
-            agregar_evento_con_recursos
+            (validar_fecha(Fecha) ->
+                write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
+                flush_output,
+                leer_linea(RecursosInput),  
+                solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha)                                
+            ;
+                write('❌ Formato de fecha inválido. Use YYYY-MM-DD'), nl,
+                agregar_evento_con_recursos
+            )
         )
     ).
+

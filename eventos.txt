@@ -1,16 +1,40 @@
-Prueba de Pro|2025-01-12
-Presentación de proyecto|2024-12-20
-Reunión de equipo|2024-12-15
-Taller de programación|2024-12-25
-Orientacion de proyecto|2025-01-12
-Prueba de AM|2025-02-10
-Prueba de Algebra|2025-02-15
-Prueba de Historia|2025-01-12
-Exposicion de Filosofia|2025-02-20
-Expo Filo|2025-03-25
-Expo Historia|2025-03-25
-expo|2025-02-22
-kuv|2025-05-25
-adfasf|2025-06-20
-asfasf|2025-06-5
-assetgd|2025-05-6
+LEC Spring Finals|2024-03-15
+Valorant Champions Madrid|2026-08-22
+CS2 Major Copenhagen|2025-04-10
+IEM Katowice|2024-02-20
+The International Dota2|2025-09-25
+LoL World Championship|2026-11-05
+Fortnite World Cup|2024-07-18
+Overwatch League Finals|2025-10-30
+RLCS World Championship|2024-06-12
+DreamHack Summer|2025-07-07
+ESL Pro League Season 19|2026-05-14
+EVO Japan 2024|2024-04-05
+Apex Legends Global Series|2025-08-14
+PUBG Global Championship|2026-12-03
+Six Invitational Rainbow6|2024-01-25
+Halo World Championship|2025-11-20
+Call of Duty League Champs|2024-09-05
+Free Fire World Series|2025-06-22
+Minecraft Championship|2026-03-30
+FIFA eWorld Cup|2024-10-11
+LEC Summer Finals|2025-07-28
+IEM Cologne|2026-06-18
+Blast Premier World Final|2024-12-12
+MSI LoL 2024|2024-05-22
+VALORANT Masters Tokyo|2025-03-08
+CS2 Major Shanghai|2026-10-19
+RLCS Spring Major|2025-02-14
+Dota2 Riyadh Masters|2026-07-02
+ESL One Birmingham|2024-08-30
+BLAST Spring Final|2025-05-30
+LCS Championship Finals|2026-09-16
+VCT Americas League|2024-11-28
+PGL Major Stockholm|2025-12-05
+DreamHack Winter|2026-01-15
+IEM Dallas|2024-04-27
+ALGS Split 2 Playoffs|2025-08-29
+OWL Midseason Madness|2026-04-11
+RLCS Fall Major|2024-10-05
+Six Major Berlin|2025-07-11
+COD Major Boston|2026-02-27
