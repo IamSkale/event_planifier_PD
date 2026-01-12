@@ -24,15 +24,15 @@ guardar_recursos :-
     ).
 
 escribir_eventos_a_stream(Stream) :-
-    findall([Nombre, Fecha], data:mi_evento(Nombre, Fecha), EventosAll),
+    findall([Nombre, Fecha, Duracion], data:mi_evento(Nombre, Fecha, Duracion), EventosAll),
     list_to_set(EventosAll, Eventos),
     forall(
-        member([Nombre, Fecha], Eventos),
-        format(Stream, '~w|~w~n', [Nombre, Fecha])
+        member([Nombre, Fecha, Duracion], Eventos),
+        format(Stream, '~w|~w|~w~n', [Nombre, Fecha, Duracion])
     ).
 
 escribir_recursos_a_stream(Stream) :-
-    findall(Nombre, data:mi_evento(Nombre, _), EventosAll),
+    findall(Nombre, data:mi_evento(Nombre, _, _), EventosAll),
     list_to_set(EventosAll, EventosOrden),
     escribir_recursos_por_orden(Stream, EventosOrden).
 

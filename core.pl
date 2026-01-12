@@ -3,8 +3,10 @@
 :- use_module(data).
 :- use_module(saving, [guardar_todo/0, recurso_a_string/2]).
 :- use_module(charging, [cargar_todo/0]).
-:- use_module(utils, [leer_linea/1, validar_fecha/1, sort_eventos/2, solicitar_recursos_en_fecha/3, 
-    solicitar_recursos_sin_fecha/2]).
+:- use_module(utils, [leer_linea/1, sort_eventos/2]).
+:- use_module(dates_work, [validar_fecha/1,fecha_siguiente/2]).
+:- use_module(checking, [solicitar_recursos_en_fecha/4, solicitar_recursos_sin_fecha/3]).
+
 
 % ========== INICIALIZAR SISTEMA ==========
 iniciar :-
@@ -34,10 +36,10 @@ mostrar_menu :-
     write('  5. Salir'), nl, nl.
 
 leer_opcion(Opcion) :-
-    write('Seleccione una opción (1-6): '),
+    write('Seleccione una opción (1-5): '), 
     flush_output,
     leer_linea(Input),
-    (atom_number(Input, Num), integer(Num), Num >= 1, Num =< 5 ->
+    (atom_number(Input, Num), integer(Num), Num >= 1, Num =< 5 -> 
         Opcion = Num
     ;
         write('❌ Opción inválida. Intente de nuevo.'), nl, nl,
@@ -68,23 +70,22 @@ ver_eventos_con_recursos :-
     write('        LISTA DE EVENTOS        '), nl,
     write('================================'), nl, nl,
     
-    findall([Nombre, Fecha], data:mi_evento(Nombre, Fecha), ListaEventos),
-    
+    findall([Nombre, Fecha, Duracion], data:mi_evento(Nombre, Fecha, Duracion), ListaEventos), 
+
     (ListaEventos == [] ->
         write('📭 No hay eventos registrados.'), nl
     ;
         sort_eventos(ListaEventos, EventosOrdenados),
-        mostrar_eventos_con_recursos(EventosOrdenados, 1),
-        nl,
+        mostrar_eventos_con_recursos(EventosOrdenados, 1), nl,
         length(ListaEventos, Cantidad),
         format('Total: ~d eventos~n', [Cantidad])
-    ),
-    nl.
+    ), nl.
 
 mostrar_eventos_con_recursos([], _).
-mostrar_eventos_con_recursos([[Nombre, Fecha]|Resto], N) :-
+mostrar_eventos_con_recursos([[Nombre, Fecha, Duracion]|Resto], N) :-
     format('~d. ~w~n', [N, Nombre]),
     format('   📅 Fecha: ~w~n', [Fecha]),
+    format('   ⏱️  Duración: ~d días~n', [Duracion]), 
     
     (data:mis_recursos(Nombre, Recursos) ->
         (Recursos == [] -> 
@@ -137,7 +138,7 @@ ver_eventos_fecha :-
     
     (validar_fecha(Fecha) ->
         findall([Nombre, Recursos], 
-                (data:mi_evento(Nombre, Fecha), 
+                (data:mi_evento(Nombre, Fecha, _), 
                  (data:mis_recursos(Nombre, Recursos) -> true ; Recursos = [])), 
                 Lista),
         (Lista == [] ->
@@ -184,20 +185,25 @@ agregar_evento_con_recursos :-
         flush_output,
         leer_linea(Fecha),
         (Fecha = "" ->
+            write('Duracion del evento: '),
+            flush_output,
+            leer_linea(Duracion),
             write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
             flush_output,
             leer_linea(RecursosInput),
-            solicitar_recursos_sin_fecha(Nombre,RecursosInput)
+            solicitar_recursos_sin_fecha(Nombre,RecursosInput,Duracion)
         ;
             (validar_fecha(Fecha) ->
+                write('Duracion del evento: '),
+                flush_output,
+                leer_linea(Duracion),
                 write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
                 flush_output,
                 leer_linea(RecursosInput),  
-                solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha)                                
+                solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion)                                
             ;
                 write('❌ Formato de fecha inválido. Use YYYY-MM-DD'), nl,
                 agregar_evento_con_recursos
             )
         )
     ).
-

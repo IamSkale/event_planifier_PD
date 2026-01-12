@@ -2,12 +2,16 @@
 
 :- use_module(data).
 :- use_module(utils, [string_trim/2, leer_linea_archivo/2]).
+:- use_module(dates_work, [generar_fechas_consecutivas/3]).
 
-% ========== CARGA DE DATOS ==========
+
 cargar_todo :-
     cargar_eventos,
     cargar_recursos,
+    expandir_fechas_eventos,
     cargar_inventario.
+
+% ========== CARGAR EVENTOS ==========
 
 cargar_eventos :-
     data:archivo_eventos(Archivo),
@@ -24,7 +28,7 @@ cargar_eventos :-
     ).
 
 leer_eventos_desde_stream(Stream) :-
-    data:leer_linea_archivo(Stream, Linea),
+    leer_linea_archivo(Stream, Linea),
     (Linea == end_of_file -> 
         true
     ;
@@ -35,6 +39,32 @@ leer_eventos_desde_stream(Stream) :-
         ),
         leer_eventos_desde_stream(Stream)
     ).
+
+procesar_linea_evento(Linea) :-
+    split_string(Linea, "|", "", Partes),
+    (Partes = [Nombre, Fecha, DuracionStr] ->
+        (atom_number(DuracionStr, Duracion), integer(Duracion), Duracion > 0 ->
+            (data:mi_evento(Nombre, Fecha, Duracion) ->
+                true
+            ;
+                assertz(data:mi_evento(Nombre, Fecha, Duracion))
+            )
+        ;
+            format('   ⚠️  Duración inválida en línea: ~w~n', [Linea])
+        )
+    ;
+        format('   ⚠️  Línea mal formada: ~w~n', [Linea])
+    ).
+
+contar_eventos(Total) :-
+    findall(_, data:mi_evento(_, _, _), Lista),
+    length(Lista, Total).
+
+limpiar_eventos :-
+    retractall(data:mi_evento(_, _, _)),
+    retractall(data:fecha_evento(_, _, _, _)). 
+
+% ========== CARGAR RECURSOS ==========
 
 cargar_recursos :-
     data:archivo_recursos(Archivo),
@@ -51,17 +81,16 @@ cargar_recursos :-
     ).
 
 leer_recursos_desde_stream(Stream) :-
-    findall(Nombre, data:mi_evento(Nombre, _), EventosOrden),
+    findall(Nombre, data:mi_evento(Nombre, _, _), EventosOrden),
     leer_recursos_por_evento(Stream, EventosOrden, 1).
 
 leer_recursos_por_evento(_, [], _).
 leer_recursos_por_evento(Stream, [Nombre|RestoEventos], NumLinea) :-
-    data:leer_linea_archivo(Stream, Linea),
+    leer_linea_archivo(Stream, Linea),
     (Linea == end_of_file -> 
         format('   ⚠️  Fin de archivo alcanzado en línea ~d~n', [NumLinea])
     ;
         (Linea = "" ->
-            % Línea vacía = sin recursos
             Recursos = []
         ;
             string_trim(Linea, LineaTrim),
@@ -81,6 +110,35 @@ leer_recursos_por_evento(Stream, [Nombre|RestoEventos], NumLinea) :-
         leer_recursos_por_evento(Stream, RestoEventos, NumLinea1)
     ).
 
+limpiar_recursos :-
+    retractall(data:mis_recursos(_, _)),
+    retractall(data:fecha_evento(_, _, _, _)). 
+
+limpiar_lista_recursos([], []).
+limpiar_lista_recursos([R|Resto], Limpios) :-
+    string_trim(R, Rlimpio),
+    (Rlimpio = "" ->
+        limpiar_lista_recursos(Resto, Limpios)
+    ;
+        split_string(Rlimpio, " ", "", Partes),
+        (Partes = [Nombre, CantStr] ->
+            (atom_number(CantStr, Cant), integer(Cant), Cant > 0 ->
+                limpiar_lista_recursos(Resto, RestoLimpios),
+                Limpios = [[Nombre, Cant]|RestoLimpios]
+            ;
+                limpiar_lista_recursos(Resto, Limpios)
+            )
+        ;
+            limpiar_lista_recursos(Resto, Limpios)
+        )
+    ).
+
+contar_recursos(Total) :-
+    findall(_, data:mis_recursos(_, _), Lista),
+    length(Lista, Total).
+
+% ========== CARGAR INVENTARIO ==========
+
 cargar_inventario :-
     data:archivo_inventario(Archivo),
     (exists_file(Archivo) ->
@@ -96,7 +154,7 @@ cargar_inventario :-
     ).
 
 leer_inventario_desde_stream(Stream) :-
-    data:leer_linea_archivo(Stream, Linea),
+    leer_linea_archivo(Stream, Linea),
     (Linea == end_of_file ->
         true
     ;
@@ -122,47 +180,21 @@ contar_inventario(Total) :-
     findall(Cant, data:recurso_inventario(_, Cant), Lista),
     sum_list(Lista, Total).
 
-procesar_linea_evento(Linea) :-
-    split_string(Linea, "|", "", Partes),
-    (Partes = [Nombre, Fecha] ->
-        (data:mi_evento(Nombre, Fecha) ->
-            true
-        ;
-            assertz(data:mi_evento(Nombre, Fecha))
-        )
-    ;
-        format('   ⚠️  Línea mal formada: ~w~n', [Linea])
-    ).
+% ========== EXPANDIR FECHAS_EVENTO ==========
 
-limpiar_eventos :-
-    retractall(data:mi_evento(_, _)).
+expandir_fechas_eventos :-
+    retractall(data:fecha_evento(_, _, _, _)), 
+    data:mi_evento(Nombre, FechaBase, Duracion),
+    expandir_fecha_evento(Nombre, FechaBase, Duracion),
+    fail.
+expandir_fechas_eventos.
 
-limpiar_recursos :-
-    retractall(data:mis_recursos(_, _)).
+expandir_fecha_evento(Nombre, FechaBase, Duracion) :-
+    (data:mis_recursos(Nombre, Recursos) -> true ; Recursos = []),
+    generar_fechas_consecutivas(FechaBase, Duracion, Fechas),
+    assertar_fechas_con_recursos(Nombre, Fechas, Recursos).
 
-contar_eventos(Total) :-
-    findall(_, data:mi_evento(_, _), Lista),
-    length(Lista, Total).
-
-contar_recursos(Total) :-
-    findall(_, data:mis_recursos(_, _), Lista),
-    length(Lista, Total).
-
-limpiar_lista_recursos([], []).
-limpiar_lista_recursos([R|Resto], Limpios) :-
-    string_trim(R, Rlimpio),
-    (Rlimpio = "" ->
-        limpiar_lista_recursos(Resto, Limpios)
-    ;
-        split_string(Rlimpio, " ", "", Partes),
-        (Partes = [Nombre, CantStr] ->
-            (atom_number(CantStr, Cant), integer(Cant), Cant > 0 ->
-                limpiar_lista_recursos(Resto, RestoLimpios),
-                Limpios = [[Nombre, Cant]|RestoLimpios]
-            ;
-                limpiar_lista_recursos(Resto, Limpios)
-            )
-        ;
-            limpiar_lista_recursos(Resto, Limpios)
-        )
-    ).
+assertar_fechas_con_recursos(_, [], _).
+assertar_fechas_con_recursos(Nombre, [Fecha|RestoFechas], Recursos) :-
+    assertz(data:fecha_evento(Fecha, Nombre, Recursos, 1)), 
+    assertar_fechas_con_recursos(Nombre, RestoFechas, Recursos).
