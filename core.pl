@@ -2,10 +2,11 @@
 
 :- use_module(data).
 :- use_module(saving, [guardar_todo/0, recurso_a_string/2]).
-:- use_module(charging, [cargar_todo/0]).
+:- use_module(charging, [cargar_todo/0,limpiar_lista_recursos/2]).
 :- use_module(utils, [leer_linea/1, sort_eventos/2]).
 :- use_module(dates_work, [validar_fecha/1,fecha_siguiente/2]).
 :- use_module(checking, [solicitar_recursos_en_fecha/4, solicitar_recursos_sin_fecha/3]).
+:- use_module(restrictions, [check_restrictions/2]).
 
 
 % ========== INICIALIZAR SISTEMA ==========
@@ -191,7 +192,13 @@ agregar_evento_con_recursos :-
             write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
             flush_output,
             leer_linea(RecursosInput),
-            solicitar_recursos_sin_fecha(Nombre,RecursosInput,Duracion)
+            (RecursosInput = "" ->
+                Recursos = []
+            ;
+                split_string(RecursosInput, ",", "", RecursosLista),
+                limpiar_lista_recursos(RecursosLista, Recursos)
+            ),
+            solicitar_recursos_sin_fecha(Nombre,Recursos,Duracion)
         ;
             (validar_fecha(Fecha) ->
                 write('Duracion del evento: '),
@@ -199,8 +206,14 @@ agregar_evento_con_recursos :-
                 leer_linea(Duracion),
                 write('Recursos (formato: recurso cantidad, recurso cantidad, o presiona Enter para ninguno): '),
                 flush_output,
-                leer_linea(RecursosInput),  
-                solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion)                                
+                leer_linea(RecursosInput), 
+                (RecursosInput = "" ->
+                    Recursos = []
+                ;
+                    split_string(RecursosInput, ",", "", RecursosLista),
+                    limpiar_lista_recursos(RecursosLista, Recursos)
+                ),
+                solicitar_recursos_en_fecha(Nombre,Recursos,Fecha,Duracion)
             ;
                 write('❌ Formato de fecha inválido. Use YYYY-MM-DD'), nl,
                 agregar_evento_con_recursos

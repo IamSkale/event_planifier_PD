@@ -38,3 +38,4 @@ PC_Gaming 110,monitor 110,headset 110
 stream_setup 4,mezclador_audio 6
 PC_Gaming 120,monitor 120,headset 120
 stream_setup 5,camara_pro 5
+

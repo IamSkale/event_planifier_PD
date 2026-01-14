@@ -1,29 +1,13 @@
 :- module(checking, [solicitar_recursos_en_fecha/4, solicitar_recursos_sin_fecha/3]).
 
-:- use_module(charging, [limpiar_lista_recursos/2]).
+:- use_module(charging, [limpiar_lista_recursos/2, cargar_todo/0]).
 :- use_module(saving, [guardar_todo/0, recurso_a_string/2]).
 :- use_module(dates_work, [fecha_actual/1,fecha_siguiente/2,generar_fechas_consecutivas/3]).
 
 % ========== SOLICITAR RECURSOS ==========
 
-solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion):-
-    (RecursosInput = "" ->
-        Recursos = []
-    ;
-        split_string(RecursosInput, ",", "", RecursosLista),
-        limpiar_lista_recursos(RecursosLista, Recursos)
-    ),
-    findall([R, C], 
-    (member([R, C], Recursos), 
-     (\+ data:recurso_inventario(R, _) -> 
-        true  
-     ; 
-        data:recurso_inventario(R, InvCant), 
-        C > InvCant  
-     )
-    ), 
-    NoInvAll),
-    list_to_set(NoInvAll, NoInv),
+solicitar_recursos_en_fecha(Nombre,Recursos,Fecha,Duracion):-
+    verificar_en_inventario(Recursos,NoInv),
     (NoInv \= [] ->
         format('❌ Recursos no presentes en inventario: ~w~nNo se agregó el evento.~n', [NoInv])
     ;
@@ -34,7 +18,7 @@ solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion):-
             (data:mi_evento(Nombre, Fecha, Duracion) ->
                 format('❗ En la fecha ~w ya existe el evento "~w".~n', [Fecha, Nombre])
             ;
-                assertz(data:mi_evento(Nombre, Fecha))
+                assertz(data:mi_evento(Nombre, Fecha, Duracion))
             ),
             (Recursos == [] ->
                 true
@@ -43,6 +27,7 @@ solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion):-
                 assertz(data:mis_recursos(Nombre, Recursos))
             ),
             guardar_todo,
+            cargar_todo,
             format('✅ Evento "~w" agregado para la fecha ~w~n', [Nombre, Fecha]),
             (Recursos == [] ->
                 format('   📦 Sin recursos asignados~n', [])
@@ -54,24 +39,8 @@ solicitar_recursos_en_fecha(Nombre,RecursosInput,Fecha,Duracion):-
         )
     ).
 
-solicitar_recursos_sin_fecha(Nombre,RecursosInput,Duracion):-
-    (RecursosInput = "" ->
-        Recursos = []
-    ;
-        split_string(RecursosInput, ",", "", RecursosLista),
-        limpiar_lista_recursos(RecursosLista, Recursos)
-    ),
-    findall([R, C], 
-    (member([R, C], Recursos), 
-     (\+ data:recurso_inventario(R, _) -> 
-        true  
-     ; 
-        data:recurso_inventario(R, InvCant), 
-        C > InvCant  
-     )
-    ), 
-    NoInvAll),
-    list_to_set(NoInvAll, NoInv),
+solicitar_recursos_sin_fecha(Nombre,Recursos,Duracion):-
+    verificar_en_inventario(Recursos,NoInv),
     (NoInv \= [] ->
         format('❌ Recursos no presentes en inventario: ~w~nNo se agregó el evento.~n', [NoInv])
     ;
@@ -89,6 +58,7 @@ solicitar_recursos_sin_fecha(Nombre,RecursosInput,Duracion):-
             assertz(data:mis_recursos(Nombre, Recursos))
         ),
         guardar_todo,
+        cargar_todo,
         format('✅ Evento "~w" agregado para la fecha ~w~n', [Nombre, FechaAceptada]),
         (Recursos == [] ->
             format('   📦 Sin recursos asignados~n', [])
@@ -182,3 +152,16 @@ verificar_disponibilidad_rec(Fecha, Recursos, Duracion, FechaAceptada) :-
     ;
         FechaAceptada = Fecha
     ).
+
+verificar_en_inventario(Recursos,NoInv):-
+    findall([R, C], 
+    (member([R, C], Recursos), 
+     (\+ data:recurso_inventario(R, _) -> 
+        true  
+     ; 
+        data:recurso_inventario(R, InvCant), 
+        C > InvCant  
+     )
+    ), 
+    NoInvAll),
+    list_to_set(NoInvAll, NoInv).
